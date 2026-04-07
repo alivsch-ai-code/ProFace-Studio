@@ -59,6 +59,13 @@ STRINGS_DE = {
     "webapp_credits_buy": "Credits kaufen",
     "menu_profile": "Profil",
     "webapp_free": "FREE",
+    "webapp_title": "ProFace AI Hub",
+    "webapp_choose_category": "Wähle eine Kategorie",
+    "webapp_categories": "Kategorien",
+    "webapp_back": "Zurück",
+    "webapp_shop_title": "Credits kaufen",
+    "webapp_credits_remaining": "Credits",
+    "webapp_start": "Start",
 }
 
 ALLOWED_IMAGE_MIME = {"image/jpeg", "image/png", "image/webp"}
@@ -160,6 +167,21 @@ def register_flask_routes(app: Flask, generation_service: GenerationService, *, 
             }
         )
 
+    @app.post("/api/user_info")
+    def api_user_info() -> Any:
+        # Telegram init_data verification can be added here for production hardening.
+        base = {
+            "ok": True,
+            "user_id": 1,
+            "username": "proface_user",
+            "credits": 0,
+            "lang": "de",
+            "auto_opt": True,
+            "daily_msg": False,
+            "bot_username": "proface_bot",
+        }
+        return jsonify(base)
+
     @app.get("/api/version")
     def api_version() -> Any:
         return jsonify({"version": "0.1.0"})
@@ -168,6 +190,22 @@ def register_flask_routes(app: Flask, generation_service: GenerationService, *, 
     def api_strings() -> Any:
         _lang = request.args.get("lang", "de")
         return jsonify(STRINGS_DE)
+
+    @app.get("/api/legal")
+    def api_legal() -> Any:
+        _lang = request.args.get("lang", "de")
+        return jsonify(
+            {
+                "ok": True,
+                "privacy": "Datenschutz: ProFace verarbeitet Uploads zur Bildgenerierung.",
+                "impressum": "Impressum: ProFace Studio.",
+                "labels": {
+                    "doc_privacy_title": "Datenschutz",
+                    "doc_impressum_title": "Impressum",
+                    "back": "Zurück",
+                },
+            }
+        )
 
     @app.get("/api/models")
     def api_models() -> Any:
