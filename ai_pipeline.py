@@ -1,9 +1,5 @@
 import hashlib
-import os
-from typing import Iterable
-
-import requests
-
+from typing import Any, Iterable
 
 SYSTEM_PROMPTS = {
     "linkedin": "Professional business portrait, studio lighting, high resolution, wearing a suit, clean background, confident look.",
@@ -12,18 +8,19 @@ SYSTEM_PROMPTS = {
 
 
 class AIPipeline:
-    """
-    2-Phasen Pipeline:
-    - Phase 1: schnelle Vorschauen (Nano Banana 2)
-    - Phase 2: finales HQ-Rendering (Nano Banana Pro)
+    """Replicate-basierte 2-Phasen Pipeline für ProFace."""
 
-    Falls kein API-Endpoint konfiguriert ist, liefert die Klasse deterministische
-    Placeholder-URLs zurück, damit der Bot-Flow testbar bleibt.
-    """
+    def __init__(self, api_key: str, preview_model: str, final_model: str):
+        self._import_error: str | None = None
+        try:
+            import replicate  # type: ignore
 
-    def __init__(self, api_key: str, base_url: str | None = None):
-        self.api_key = api_key
-        self.base_url = (base_url or "").strip().rstrip("/")
+            self.client = replicate.Client(api_token=api_key)
+        except Exception as exc:
+            self.client = None
+            self._import_error = str(exc)
+        self.preview_model = preview_model
+        self.final_model = final_model
 
     def _placeholder_urls(self, seed_prefix: str, count: int) -> list[str]:
         out = []
@@ -32,44 +29,76 @@ class AIPipeline:
             out.append(f"https://picsum.photos/seed/{seed}/1024/1024")
         return out
 
-    def generate_previews(self, style_key: str, file_ids: Iterable[str]) -> list[str]:
-        file_ids = list(file_ids)
-        prompt = SYSTEM_PROMPTS.get(style_key, SYSTEM_PROMPTS["linkedin"])
-        if not self.base_url:
-            return self._placeholder_urls(f"preview:{style_key}:{','.join(file_ids)}", 3)
+    @staticmethod
+    def _normalize_output_urls(output: Any) -> list[str]:
+        urls: list[str] = []
+        if isinstance(output, str):
+            return [output]
+        if isinstance(output, list):
+            for item in output:
+                if isinstance(item, str):
+                    urls.append(item)
+                elif hasattr(item, "url") and callable(item.url):
+                    try:
+                        urls.append(str(item.url))
+                    except Exception:
+                        continue
+            return urls
+        if hasattr(output, "url") and callable(output.url):
+            try:
+                return [str(output.url)]
+            except Exception:
+                return []
+        return urls
 
-        resp = requests.post(
-            f"{self.base_url}/nano-banana-2/previews",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={"prompt": prompt, "file_ids": file_ids, "count": 3},
-            timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json() or {}
-        urls = data.get("urls") or []
-        return [u for u in urls if isinstance(u, str)]
-
-    def generate_final(self, style_key: str, file_ids: Iterable[str], chosen_preview_url: str | None) -> str:
-        file_ids = list(file_ids)
+    def generate_previews(self, style_key: str, image_inputs: Iterable[str]) -> list[str]:
+        image_inputs = list(image_inputs)
         prompt = SYSTEM_PROMPTS.get(style_key, SYSTEM_PROMPTS["linkedin"])
-        if not self.base_url:
+        if not image_inputs:
+            return []
+        if self.client is None:
+            return self._placeholder_urls(f"preview:{style_key}:{','.join(image_inputs)}", 3)
+        try:
+            output = self.client.run(
+                self.preview_model,
+                input={
+                    "prompt": prompt,
+                    "input_images": image_inputs[:5],
+                    "num_outputs": 3,
+                },
+            )
+            urls = self._normalize_output_urls(output)
+            return urls[:3]
+        except Exception:
+            return self._placeholder_urls(f"preview:{style_key}:{','.join(image_inputs)}", 3)
+
+    def generate_final(
+        self,
+        style_key: str,
+        image_inputs: Iterable[str],
+        chosen_preview_url: str | None,
+    ) -> str:
+        image_inputs = list(image_inputs)
+        prompt = SYSTEM_PROMPTS.get(style_key, SYSTEM_PROMPTS["linkedin"])
+        if self.client is None:
             return self._placeholder_urls(
-                f"final:{style_key}:{chosen_preview_url}:{','.join(file_ids)}", 1
+                f"final:{style_key}:{chosen_preview_url}:{','.join(image_inputs)}", 1
             )[0]
-
-        resp = requests.post(
-            f"{self.base_url}/nano-banana-pro/final",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={
-                "prompt": prompt,
-                "file_ids": file_ids,
-                "chosen_preview_url": chosen_preview_url,
-            },
-            timeout=240,
-        )
-        resp.raise_for_status()
-        data = resp.json() or {}
-        url = data.get("url")
-        if not isinstance(url, str) or not url:
-            raise RuntimeError("Nano Banana Pro returned no final url")
-        return url
+        try:
+            output = self.client.run(
+                self.final_model,
+                input={
+                    "prompt": prompt,
+                    "input_images": image_inputs[:5],
+                    "reference_image": chosen_preview_url,
+                    "num_outputs": 1,
+                },
+            )
+            urls = self._normalize_output_urls(output)
+            if urls:
+                return urls[0]
+        except Exception:
+            pass
+        return self._placeholder_urls(
+            f"final:{style_key}:{chosen_preview_url}:{','.join(image_inputs)}", 1
+        )[0]

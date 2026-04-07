@@ -34,19 +34,37 @@ logger = logging.getLogger("proface")
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 NEON_DATABASE_URL = os.getenv("NEON_DATABASE_URL", "")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "")
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
+REPLICATE_PREVIEW_MODEL = os.getenv("REPLICATE_PREVIEW_MODEL", "google/nano-banana-2")
+REPLICATE_FINAL_MODEL = os.getenv("REPLICATE_FINAL_MODEL", "google/nano-banana-pro")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 PRICE_XTR = int(os.getenv("PROFACE_PRICE_XTR", "49"))
 
 if not TELEGRAM_TOKEN:
     raise RuntimeError("Missing TELEGRAM_TOKEN")
 if not NEON_DATABASE_URL:
     raise RuntimeError("Missing NEON_DATABASE_URL")
-if not GEMINI_API_KEY:
-    raise RuntimeError("Missing GEMINI_API_KEY")
+if not REPLICATE_API_TOKEN:
+    raise RuntimeError("Missing REPLICATE_API_TOKEN")
 
 db = Database(NEON_DATABASE_URL)
-ai = AIPipeline(api_key=GEMINI_API_KEY, base_url=GEMINI_BASE_URL)
+ai = AIPipeline(
+    api_key=REPLICATE_API_TOKEN,
+    preview_model=REPLICATE_PREVIEW_MODEL,
+    final_model=REPLICATE_FINAL_MODEL,
+)
+
+
+async def _file_ids_to_telegram_urls(bot, file_ids: list[str]) -> list[str]:
+    out: list[str] = []
+    for file_id in file_ids:
+        try:
+            tg_file = await bot.get_file(file_id)
+            if tg_file.file_path:
+                out.append(f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{tg_file.file_path}")
+        except Exception:
+            continue
+    return out
 
 
 def style_keyboard() -> InlineKeyboardMarkup:
@@ -66,12 +84,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     db.clear_uploads(user.id)
     db.set_stage(user.id, "await_template")
     context.user_data.clear()
-    await update.effective_chat.send_message(
+    welcome = (
         "Willkommen bei ProFace.\n"
         "Sende zuerst ein Template, dann genau 5 Fotos.\n"
-        "Danach starten wir die AI-Pipeline mit Telegram Stars.",
-        reply_markup=style_keyboard(),
+        "Danach starten wir die AI-Pipeline mit Telegram Stars."
     )
+    await update.effective_chat.send_message(welcome, reply_markup=style_keyboard())
+    if WEBAPP_URL:
+        await update.effective_chat.send_message(f"WebApp: {WEBAPP_URL}")
 
 
 async def new_session(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -168,12 +188,16 @@ async def on_successful_payment(update: Update, context: ContextTypes.DEFAULT_TY
     if len(file_ids) != 5:
         await update.message.reply_text("Es müssen genau 5 Fotos vorliegen. Bitte /newsession starten.")
         return
+    input_urls = await _file_ids_to_telegram_urls(context.bot, file_ids)
+    if len(input_urls) != 5:
+        await update.message.reply_text("Konnte Upload-Dateien nicht auflösen. Bitte /newsession")
+        return
 
     style = db.get_template(user_id) or "linkedin"
     db.set_stage(user_id, "rendering_previews")
     await update.message.reply_text("Zahlung bestätigt. Generiere Vorschauen (Nano Banana 2)...")
 
-    previews = ai.generate_previews(style_key=style, file_ids=file_ids)
+    previews = ai.generate_previews(style_key=style, image_inputs=input_urls)
     if not previews:
         db.set_stage(user_id, "await_template")
         await update.message.reply_text("Preview-Generierung fehlgeschlagen. Bitte /newsession")
@@ -216,11 +240,15 @@ async def on_pick_preview(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     chosen = preview_urls[idx]
     file_ids = db.list_upload_file_ids(user_id)
+    input_urls = await _file_ids_to_telegram_urls(context.bot, file_ids)
+    if len(input_urls) != 5:
+        await query.edit_message_text("Dateien konnten nicht aufgelöst werden. Bitte /newsession")
+        return
     style = db.get_template(user_id) or "linkedin"
     db.set_stage(user_id, "rendering_final")
     await query.edit_message_text("Starte finales Rendering (Nano Banana Pro)...")
 
-    final_url = ai.generate_final(style_key=style, file_ids=file_ids, chosen_preview_url=chosen)
+    final_url = ai.generate_final(style_key=style, image_inputs=input_urls, chosen_preview_url=chosen)
     await query.message.reply_photo(final_url, caption="Hier ist dein finales ProFace Business-Porträt.")
     db.set_stage(user_id, "completed")
 
