@@ -99,7 +99,7 @@ def _rate_limited(bucket: str, key: str, max_requests: int, window_seconds: int)
 
 
 def register_flask_routes(app: Flask, generation_service: GenerationService, *, max_uploads: int = 5) -> None:
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    project_root = os.path.abspath(app.root_path)
     react_dist = os.path.join(project_root, "webapp-react", "dist")
 
     @app.get("/")
