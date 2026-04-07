@@ -34,3 +34,9 @@ def test_generate_needs_exactly_five_uploads():
     res = client.post("/api/generate", data={"style": "linkedin"})
     assert res.status_code == 400
     assert res.get_json()["error"] == "need_exactly_5_photos"
+
+
+def test_webapp_route_available():
+    client = _app().test_client()
+    res = client.get("/webapp")
+    assert res.status_code == 200

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 
 from src.application.services import GenerationService
 from src.infrastructure.ai.pipeline import SYSTEM_PROMPTS
@@ -60,6 +61,9 @@ STRINGS_DE = {
 
 
 def register_flask_routes(app: Flask, generation_service: GenerationService, *, max_uploads: int = 5) -> None:
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    react_dist = os.path.join(project_root, "webapp-react", "dist")
+
     @app.get("/")
     def index():
         return render_template(
@@ -87,6 +91,18 @@ def register_flask_routes(app: Flask, generation_service: GenerationService, *, 
             files.append((content, mime))
 
         return jsonify(generation_service.generate_from_uploads(style, files))
+
+    @app.get("/webapp")
+    def webapp_index():
+        if os.path.isdir(react_dist):
+            return send_from_directory(react_dist, "index.html")
+        return render_template("index.html", templates=list(SYSTEM_PROMPTS.keys()), max_uploads=max_uploads)
+
+    @app.get("/webapp/<path:path>")
+    def webapp_assets(path: str):
+        if os.path.isdir(react_dist):
+            return send_from_directory(react_dist, path)
+        return ("Not built", 404)
 
     @app.get("/api/user")
     def api_user() -> Any:
