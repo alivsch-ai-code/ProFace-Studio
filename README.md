@@ -19,8 +19,14 @@ AI-powered Telegram Bot + WebApp that transforms up to 5 personal photos into pr
 ## Project Structure
 
 - `main.py` - Telegram bot flow and handlers.
-- `database.py` - Neon/PostgreSQL connection and schema methods.
-- `ai_pipeline.py` - Replicate wrapper and prompt templates.
+- `src/application/` - business services (generation orchestration).
+- `src/domain/` - core entities.
+- `src/infrastructure/` - database + AI adapters.
+- `src/presentation/http/` - Flask routes.
+- `src/presentation/telegram/` - Telegram integration entry points.
+- `src/config/` - centralized settings loading.
+- `database.py` - legacy compatibility wrapper source.
+- `ai_pipeline.py` - legacy compatibility wrapper source.
 - `web_app.py` - Flask WebApp server.
 - `templates/index.html`, `static/*` - Web UI.
 - `Procfile` - Railway worker command.
@@ -60,6 +66,12 @@ python web_app.py
 ![ProFace WebApp Home](docs/screenshots/webapp-home.png)
 
 ![ProFace WebApp Results](docs/screenshots/webapp-results.png)
+
+## Reference Alignment
+
+- Folder layout now mirrors the layered structure from the AZAMAT reference repository.
+- WebApp visual style was adjusted toward the same top-bar/cards/hero look and feel.
+- Generation flow remains adapted to ProFace requirements (fixed templates, 5 photo uploads, Stars-gated final render).
 
 ## Database Tables (Neon)
 

@@ -1,45 +1,90 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ProFace WebApp</title>
-    <link rel="stylesheet" href="/static/styles.css" />
-  </head>
-  <body>
-    <main class="container">
-      <h1>ProFace WebApp</h1>
-      <p>Uploade genau 5 Fotos, wähle ein Template und starte die Replicate-Nano-Banana Pipeline.</p>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProFace Mini App</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="top-bar">
+      <span class="user">User: ProFace</span>
+      <div class="top-actions">
+        <button class="top-icon-btn" type="button">💎 <b>0</b></button>
+        <button class="top-icon-btn" type="button">⚙️</button>
+        <button class="top-icon-btn" type="button">👤</button>
+      </div>
+    </div>
 
-      <form id="gen-form">
+    <header class="header">
+      <div class="hero-visual">
+        <span class="hero-orb hero-orb-a"></span>
+        <span class="hero-orb hero-orb-b"></span>
+        <span class="hero-ring hero-ring-a"></span>
+        <span class="hero-grid-glow"></span>
+      </div>
+      <h1>ProFace Studio</h1>
+      <p>Replicate Nano Banana Pipeline mit genau {{ max_uploads }} Uploads</p>
+      <div class="azamat-version-badge">PROFACE v0.1.0</div>
+    </header>
+
+    <nav class="card nav-row">
+      <button class="btn-secondary nav-btn" data-view="main">Main</button>
+      <button class="btn-secondary nav-btn" data-view="models">Models</button>
+      <button class="btn-secondary nav-btn" data-view="detail">Detail</button>
+      <button class="btn-secondary nav-btn" data-view="shop">Shop</button>
+      <button class="btn-secondary nav-btn" data-view="settings">Settings</button>
+      <button class="btn-secondary nav-btn" data-view="profile">Profile</button>
+    </nav>
+
+    <section id="view-main" class="card view">
+      <h3>Welcome</h3>
+      <p>Wähle im Menü einen Bereich. Dieser Flow ist am Referenz-AppShell-Layout ausgerichtet.</p>
+    </section>
+
+    <section id="view-models" class="card view hidden">
+      <h3>Models</h3>
+      <div id="models-grid" class="grid"></div>
+    </section>
+
+    <section id="view-detail" class="card view hidden">
+      <h3>Model Detail & Generation</h3>
+      <form id="gen-form" class="form-grid">
         <label for="style">Template</label>
         <select id="style" name="style">
           {% for t in templates %}
           <option value="{{ t }}">{{ t }}</option>
           {% endfor %}
         </select>
-
         <label for="photos">Fotos (genau {{ max_uploads }})</label>
         <input id="photos" name="photos" type="file" accept="image/*" multiple required />
-
-        <button type="submit">Generieren</button>
+        <button class="btn-primary" type="submit">Generieren</button>
       </form>
+      <h4>Status</h4>
+      <pre id="status">Bereit.</pre>
+      <h4>Vorschauen</h4>
+      <div id="previews" class="grid"></div>
+      <h4>Final</h4>
+      <div id="final" class="grid"></div>
+    </section>
 
-      <section>
-        <h2>Status</h2>
-        <pre id="status">Bereit.</pre>
-      </section>
+    <section id="view-shop" class="card view hidden">
+      <h3>Shop</h3>
+      <div id="shop-list"></div>
+    </section>
 
-      <section>
-        <h2>Vorschauen</h2>
-        <div id="previews" class="grid"></div>
-      </section>
+    <section id="view-settings" class="card view hidden">
+      <h3>Settings</h3>
+      <p>Sprache, Opt-in und Daily-Optionen werden wie im Referenzmuster vorbereitet.</p>
+    </section>
 
-      <section>
-        <h2>Final</h2>
-        <div id="final"></div>
-      </section>
-    </main>
-    <script src="/static/app.js"></script>
-  </body>
-  </html>
+    <section id="view-profile" class="card view hidden">
+      <h3>Profile</h3>
+      <pre id="profile-box">Lade Profil...</pre>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
