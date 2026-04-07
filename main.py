@@ -55,13 +55,15 @@ ai = AIPipeline(
 )
 
 
-async def _file_ids_to_telegram_urls(bot, file_ids: list[str]) -> list[str]:
+async def _file_ids_to_replicate_inputs(bot, file_ids: list[str]) -> list[str]:
     out: list[str] = []
-    for file_id in file_ids:
+    for idx, file_id in enumerate(file_ids):
         try:
             tg_file = await bot.get_file(file_id)
-            if tg_file.file_path:
-                out.append(f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{tg_file.file_path}")
+            file_bytes = await tg_file.download_as_bytearray()
+            uploaded = ai.upload_image_bytes(bytes(file_bytes), filename=f"telegram_{idx + 1}.jpg")
+            if uploaded:
+                out.append(uploaded)
         except Exception:
             continue
     return out
@@ -188,7 +190,7 @@ async def on_successful_payment(update: Update, context: ContextTypes.DEFAULT_TY
     if len(file_ids) != 5:
         await update.message.reply_text("Es müssen genau 5 Fotos vorliegen. Bitte /newsession starten.")
         return
-    input_urls = await _file_ids_to_telegram_urls(context.bot, file_ids)
+    input_urls = await _file_ids_to_replicate_inputs(context.bot, file_ids)
     if len(input_urls) != 5:
         await update.message.reply_text("Konnte Upload-Dateien nicht auflösen. Bitte /newsession")
         return
@@ -240,7 +242,7 @@ async def on_pick_preview(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     chosen = preview_urls[idx]
     file_ids = db.list_upload_file_ids(user_id)
-    input_urls = await _file_ids_to_telegram_urls(context.bot, file_ids)
+    input_urls = await _file_ids_to_replicate_inputs(context.bot, file_ids)
     if len(input_urls) != 5:
         await query.edit_message_text("Dateien konnten nicht aufgelöst werden. Bitte /newsession")
         return

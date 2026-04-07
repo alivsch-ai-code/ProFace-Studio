@@ -1,0 +1,6 @@
+[build]
+builder = "NIXPACKS"
+nixpacksConfigPath = "nixpacks.toml"
+
+[deploy]
+startCommand = "/opt/venv/bin/python web_app.py"

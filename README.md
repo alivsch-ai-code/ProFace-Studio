@@ -88,6 +88,12 @@ Initialized automatically on startup:
   - `pre_checkout_query` is approved
   - `successful_payment` is received
 
+## API Alignment Notes
+
+- Replicate integration now uploads Telegram image bytes via Replicate Files API instead of exposing Telegram file URLs.
+- Generation calls try multiple common model input shapes (`input_images`, `images`, `image`) for better compatibility across model variants.
+- Output normalization supports string URLs and Replicate file-like objects with `.url`.
+
 ## Validation
 
 - Python syntax validation for bot/webapp modules (`py_compile`).
@@ -96,3 +102,10 @@ Initialized automatically on startup:
   - exactly 5 uploads
   - paid-only final generation
   - preview-to-final handoff
+
+## Railway Deployment (AZAMAT-style)
+
+- `railway.toml` uses Nixpacks builder and project `nixpacks.toml`.
+- Build pipeline installs Python + Node deps and runs `webapp-react` production build.
+- Start command uses `web_app.py` to serve API + React mini app under `/webapp`.
+- `Procfile` keeps optional split process definitions (`web` + `worker`) if you deploy worker separately.

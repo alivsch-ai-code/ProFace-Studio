@@ -1,0 +1,62 @@
+from PIL import Image, ImageDraw
+import os
+out_dir = r"e:\\ProFace-Studio\\docs\\screenshots"
+os.makedirs(out_dir, exist_ok=True)
+w, h = 1600, 980
+img = Image.new('RGB', (w, h), '#0b1018')
+d = ImageDraw.Draw(img)
+d.rounded_rectangle((50, 40, 1550, 120), radius=18, fill='#131b27', outline='#334155', width=2)
+d.text((80, 70), 'User: proface_user', fill='#e5e7eb')
+d.rounded_rectangle((1260, 58, 1360, 102), radius=12, fill='#1f2937', outline='#475569')
+d.text((1280, 73), 'XTR 0', fill='#e5e7eb')
+d.rounded_rectangle((1380, 58, 1430, 102), radius=12, fill='#1f2937', outline='#475569')
+d.text((1394, 73), 'SET', fill='#e5e7eb')
+d.rounded_rectangle((1450, 58, 1500, 102), radius=12, fill='#1f2937', outline='#475569')
+d.text((1464, 73), 'USR', fill='#e5e7eb')
+d.rounded_rectangle((50, 150, 1550, 360), radius=24, fill='#121a24', outline='#334155', width=2)
+d.ellipse((160, 130, 360, 330), fill='#1d4ed8')
+d.ellipse((1220, 140, 1450, 360), fill='#6d28d9')
+d.text((620, 210), 'ProFace AI Hub', fill='#f8fafc')
+d.text((560, 250), 'Replicate Nano Banana Pipeline (5 Uploads)', fill='#cbd5e1')
+d.rounded_rectangle((700, 288, 900, 328), radius=20, fill='#0f172a', outline='#475569')
+d.text((740, 301), 'PROFACE v0.1.0', fill='#e2e8f0')
+y = 400
+for i, title in enumerate(['Styles', 'Business Portrait', 'Shop', 'Settings']):
+    x1 = 50 + i*375
+    x2 = x1 + 350
+    d.rounded_rectangle((x1, y, x2, y+200), radius=18, fill='#131b27', outline='#334155', width=2)
+    d.text((x1+20, y+30), title, fill='#f1f5f9')
+    d.text((x1+20, y+70), 'Open view', fill='#94a3b8')
+d.rounded_rectangle((50, 640, 1550, 920), radius=18, fill='#101722', outline='#334155', width=2)
+d.text((80, 690), 'Main / Models / Detail / Shop / Settings / Profile', fill='#cbd5e1')
+d.text((80, 740), 'React/Vite webapp-react integrated and served on /webapp', fill='#94a3b8')
+img.save(os.path.join(out_dir, 'webapp-home.png'))
+a = Image.new('RGB', (w, h), '#0b1018')
+d = ImageDraw.Draw(a)
+d.rounded_rectangle((50, 40, 1550, 120), radius=18, fill='#131b27', outline='#334155', width=2)
+d.text((80, 70), 'Model Detail - LinkedIn Style', fill='#e5e7eb')
+d.rounded_rectangle((50, 150, 950, 520), radius=18, fill='#131b27', outline='#334155', width=2)
+d.text((80, 185), 'Input', fill='#f8fafc')
+d.text((80, 230), 'Style: linkedin', fill='#cbd5e1')
+d.text((80, 270), 'Photos: 5/5 selected', fill='#cbd5e1')
+d.rounded_rectangle((80, 320, 300, 370), radius=12, fill='#1d4ed8', outline='#60a5fa')
+d.text((125, 338), 'Generieren', fill='#ffffff')
+d.rounded_rectangle((80, 400, 900, 490), radius=10, fill='#0f172a', outline='#475569')
+d.text((100, 435), 'Status: Fertig', fill='#e2e8f0')
+d.rounded_rectangle((980, 150, 1550, 520), radius=18, fill='#131b27', outline='#334155', width=2)
+d.text((1010, 185), 'Vorschauen', fill='#f8fafc')
+for i in range(3):
+    x1 = 1010 + (i%2)*260
+    y1 = 230 + (i//2)*140
+    d.rounded_rectangle((x1, y1, x1+240, y1+120), radius=10, fill='#1f2937', outline='#475569')
+    d.text((x1+78, y1+50), f'Preview {i+1}', fill='#e5e7eb')
+d.rounded_rectangle((50, 560, 1550, 920), radius=18, fill='#131b27', outline='#334155', width=2)
+d.text((80, 600), 'Final Result', fill='#f8fafc')
+d.rounded_rectangle((80, 640, 700, 890), radius=14, fill='#1f2937', outline='#475569')
+d.text((310, 760), 'Final Image', fill='#e5e7eb')
+d.text((760, 690), 'Pipeline:', fill='#cbd5e1')
+d.text((760, 730), '1) Nano Banana 2 previews', fill='#94a3b8')
+d.text((760, 770), '2) Nano Banana Pro final', fill='#94a3b8')
+d.text((760, 810), 'Replicate backend', fill='#94a3b8')
+a.save(os.path.join(out_dir, 'webapp-results.png'))
+print('updated screenshots')

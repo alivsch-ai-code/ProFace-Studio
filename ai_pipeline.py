@@ -1,4 +1,5 @@
 import hashlib
+import io
 from typing import Any, Iterable
 
 SYSTEM_PROMPTS = {
@@ -38,18 +39,31 @@ class AIPipeline:
             for item in output:
                 if isinstance(item, str):
                     urls.append(item)
-                elif hasattr(item, "url") and callable(item.url):
+                elif hasattr(item, "url"):
                     try:
-                        urls.append(str(item.url))
+                        val = item.url() if callable(item.url) else item.url
+                        if val:
+                            urls.append(str(val))
                     except Exception:
                         continue
             return urls
-        if hasattr(output, "url") and callable(output.url):
+        if hasattr(output, "url"):
             try:
-                return [str(output.url)]
+                val = output.url() if callable(output.url) else output.url
+                return [str(val)] if val else []
             except Exception:
                 return []
         return urls
+
+    def upload_image_bytes(self, content: bytes, filename: str = "upload.jpg") -> str | None:
+        if self.client is None:
+            return None
+        try:
+            file_obj = self.client.files.create(io.BytesIO(content), filename=filename)
+            val = file_obj.url() if hasattr(file_obj, "url") and callable(file_obj.url) else getattr(file_obj, "url", None)
+            return str(val) if val else None
+        except Exception:
+            return None
 
     def generate_previews(self, style_key: str, image_inputs: Iterable[str]) -> list[str]:
         image_inputs = list(image_inputs)
@@ -59,14 +73,21 @@ class AIPipeline:
         if self.client is None:
             return self._placeholder_urls(f"preview:{style_key}:{','.join(image_inputs)}", 3)
         try:
-            output = self.client.run(
-                self.preview_model,
-                input={
-                    "prompt": prompt,
-                    "input_images": image_inputs[:5],
-                    "num_outputs": 3,
-                },
-            )
+            input_payloads = [
+                {"prompt": prompt, "input_images": image_inputs[:5], "num_outputs": 3},
+                {"prompt": prompt, "images": image_inputs[:5], "num_outputs": 3},
+                {"prompt": prompt, "image": image_inputs[0], "num_outputs": 3},
+            ]
+            output = None
+            for payload in input_payloads:
+                try:
+                    output = self.client.run(self.preview_model, input=payload)
+                    break
+                except Exception:
+                    output = None
+                    continue
+            if output is None:
+                raise RuntimeError("preview_generation_failed")
             urls = self._normalize_output_urls(output)
             return urls[:3]
         except Exception:
@@ -85,15 +106,31 @@ class AIPipeline:
                 f"final:{style_key}:{chosen_preview_url}:{','.join(image_inputs)}", 1
             )[0]
         try:
-            output = self.client.run(
-                self.final_model,
-                input={
+            input_payloads = [
+                {
                     "prompt": prompt,
                     "input_images": image_inputs[:5],
                     "reference_image": chosen_preview_url,
                     "num_outputs": 1,
                 },
-            )
+                {
+                    "prompt": prompt,
+                    "images": image_inputs[:5],
+                    "image": chosen_preview_url or image_inputs[0],
+                    "num_outputs": 1,
+                },
+                {"prompt": prompt, "image": image_inputs[0], "num_outputs": 1},
+            ]
+            output = None
+            for payload in input_payloads:
+                try:
+                    output = self.client.run(self.final_model, input=payload)
+                    break
+                except Exception:
+                    output = None
+                    continue
+            if output is None:
+                raise RuntimeError("final_generation_failed")
             urls = self._normalize_output_urls(output)
             if urls:
                 return urls[0]
